@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Powered Fraud Detection Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        .alert-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold">Fraud Detection Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 hover:bg-blue-700 rounded">
+                        <i class="bi bi-bell"></i>
+                    </button>
+                    <button class="p-2 hover:bg-blue-700 rounded">
+                        <i class="bi bi-gear"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto p-4">
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="text-gray-500">Total Transactions</h3>
+                    <p class="text-2xl font-bold" id="totalTransactions">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="text-gray-500">Suspicious Activities</h3>
+                    <p class="text-2xl font-bold text-yellow-500" id="suspiciousCount">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="text-gray-500">Confirmed Fraud</h3>
+                    <p class="text-2xl font-bold text-red-500" id="fraudCount">0</p>
+                </div>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="bg-white p-4 rounded-lg shadow mb-6">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="text" id="searchInput" placeholder="Search transactions..." 
+                           class="flex-1 p-2 border rounded">
+                    <select id="riskFilter" class="p-2 border rounded">
+                        <option value="all">All Risk Levels</option>
+                        <option value="high">High Risk</option>
+                        <option value="medium">Medium Risk</option>
+                        <option value="low">Low Risk</option>
+                    </select>
+                    <button onclick="applyFilters()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Apply Filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- Real-time Alerts -->
+            <div class="bg-white p-4 rounded-lg shadow mb-6">
+                <h2 class="text-xl font-bold mb-4">Real-time Alerts</h2>
+                <div id="alertsContainer" class="space-y-2"></div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Risk Score</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionTable" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated data and functionality
+        let transactions = [];
+        let alerts = [];
+
+        function generateRandomTransaction() {
+            const riskLevels = ['low', 'medium', 'high'];
+            const statuses = ['completed', 'pending', 'flagged'];
+            
+            return {
+                id: Math.random().toString(36).substr(2, 9),
+                amount: (Math.random() * 10000).toFixed(2),
+                date: new Date(Date.now() - Math.random() * 86400000).toISOString().split('T')[0],
+                riskScore: Math.floor(Math.random() * 100),
+                riskLevel: riskLevels[Math.floor(Math.random() * 3)],
+                status: statuses[Math.floor(Math.random() * 3)]
+            };
+        }
+
+        function generateAlert(transaction) {
+            return {
+                id: Math.random().toString(36).substr(2, 9),
+                message: `Suspicious activity detected for transaction ${transaction.id}`,
+                timestamp: new Date().toLocaleTimeString(),
+                severity: transaction.riskScore > 75 ? 'high' : 'medium'
+            };
+        }
+
+        function updateDashboard() {
+            // Generate new transaction
+            const newTransaction = generateRandomTransaction();
+            transactions.unshift(newTransaction);
+            if (transactions.length > 100) transactions.pop();
+
+            // Generate alert for high-risk transactions
+            if (newTransaction.riskScore > 70) {
+                const alert = generateAlert(newTransaction);
+                alerts.unshift(alert);
+                if (alerts.length > 5) alerts.pop();
+            }
+
+            // Update stats
+            document.getElementById('totalTransactions').textContent = transactions.length;
+            document.getElementById('suspiciousCount').textContent = 
+                transactions.filter(t => t.riskScore > 50).length;
+            document.getElementById('fraudCount').textContent = 
+                transactions.filter(t => t.riskScore > 80).length;
+
+            // Update alerts
+            const alertsContainer = document.getElementById('alertsContainer');
+            alertsContainer.innerHTML = alerts.map(alert => `
+                <div class="p-3 ${alert.severity === 'high' ? 'bg-red-100' : 'bg-yellow-100'} 
+                     rounded-lg alert-pulse">
+                    <p class="text-sm">
+                        <span class="font-bold">${alert.timestamp}</span>: ${alert.message}
+                    </p>
+                </div>
+            `).join('');
+
+            // Update transaction table
+            const tableBody = document.getElementById('transactionTable');
+            tableBody.innerHTML = transactions.map(t => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">${t.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$${t.amount}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${t.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${t.riskScore > 75 ? 'bg-red-100 text-red-800' : 
+                              t.riskScore > 50 ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-green-100 text-green-800'}">
+                            ${t.riskScore}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${t.status === 'flagged' ? 'bg-red-100 text-red-800' : 
+                              t.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-green-100 text-green-800'}">
+                            ${t.status}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const riskLevel = document.getElementById('riskFilter').value;
+
+            const filtered = transactions.filter(t => {
+                const matchesSearch = t.id.toLowerCase().includes(searchTerm) || 
+                                    t.amount.toString().includes(searchTerm);
+                const matchesRisk = riskLevel === 'all' || 
+                                  (riskLevel === 'high' && t.riskScore > 75) ||
+                                  (riskLevel === 'medium' && t.riskScore > 50 && t.riskScore <= 75) ||
+                                  (riskLevel === 'low' && t.riskScore <= 50);
+                return matchesSearch && matchesRisk;
+            });
+
+            const tableBody = document.getElementById('transactionTable');
+            tableBody.innerHTML = filtered.map(t => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">${t.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">$${t.amount}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${t.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${t.riskScore > 75 ? 'bg-red-100 text-red-800' : 
+                              t.riskScore > 50 ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-green-100 text-green-800'}">
+                            ${t.riskScore}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${t.status === 'flagged' ? 'bg-red-100 text-red-800' : 
+                              t.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-green-100 text-green-800'}">
+                            ${t.status}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Initialize dashboard and set up periodic updates
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
